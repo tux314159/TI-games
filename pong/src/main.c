@@ -177,19 +177,18 @@ movball(void)
 		}
 	}
 
-	if (!framecnt2) {
-		ball.x += ball.xmov;
-		ball.y += ball.ymov;
-		// Top/bottom collision detection
-		if (BALLTOP <= HUD_H) {
-			ball.ymov = -ball.ymov;
-			ball.y    = HUD_H + BALL_RAD;
-		} else if (BALLBOT >= GFX_LCD_HEIGHT) {
-			ball.ymov = -ball.ymov;
-			ball.y    = GFX_LCD_HEIGHT - BALL_RAD;
-		}
+	// If movespeed is odd we can stutter the ball
+	ball.x += ball.xmov / 2 + (framecnt2 && ball.xmov % 2);
+	ball.y += ball.ymov / 2 + (framecnt2 && ball.ymov % 2);
+	// Top/bottom collision detection
+	if (BALLTOP <= HUD_H) {
+		ball.ymov = -ball.ymov;
+		ball.y    = HUD_H + BALL_RAD;
+	} else if (BALLBOT >= GFX_LCD_HEIGHT) {
+		ball.ymov = -ball.ymov;
+		ball.y    = GFX_LCD_HEIGHT - BALL_RAD;
 	}
-
+	
 	return;
 
 resetball:;
