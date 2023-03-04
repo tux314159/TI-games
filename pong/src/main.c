@@ -164,7 +164,7 @@ movball(void)
 	}
 
 	if (touchpadd && !movball_lasttouch) {
-		double theta = M_PI_2 * 0.6 *
+		double theta = M_PI_4 * 0.6 *
 		               (ball.y - (touchpadd->y + (float)PADH / 2)) /
 		               ((float)PADH / 2);
 		ball.xmov = BALL_SPEED * cos(theta) * (touchpadd == &padd2 ? -1 : 1);
