@@ -53,8 +53,8 @@ typedef struct {
 // Ball
 #define BALLTOP    (ball.y - BALL_RAD)
 #define BALLBOT    (ball.y + BALL_RAD)
-#define BALL_RAD   7
-#define BALL_SPEED 12 // per unit time, we will move 10 units in any direction
+#define BALL_RAD   5
+#define BALL_SPEED 14 // per unit time, we will move 10 units in any direction
 Ball ball = {
 	.x    = GAME_W / 2,
 	.y    = GAME_H / 2 + HUD_H,
@@ -64,9 +64,10 @@ Ball ball = {
 };
 
 // Paddles
-#define PADW   6
-#define PADH   40
+#define PADW   4
+#define PADH   35
 #define PADCOL GREEN
+#define PADSPD 5
 
 Paddle padd1 = {
 	.x = 0,
@@ -83,6 +84,7 @@ Paddle padd2 = {
 char framecnt2  = 0;
 char framecnt3  = 0;
 char framecnt10 = 0;
+char framecnt20 = 0;
 
 // GAME VARIABLES
 
@@ -123,16 +125,11 @@ draw(void)
 	gfx_SetColor(WHITE);
 	gfx_Line_NoClip(0, HUD_H, GFX_LCD_WIDTH, HUD_H);
 	gfx_PrintStringXY("SCORE: ", 10, 10);
-	gfx_PrintInt(p1score, 3);
+	gfx_PrintInt(p1score, 2);
 	gfx_PrintString(" - ");
-	gfx_PrintInt(p2score, 3);
+	gfx_PrintInt(p2score, 2);
 	gfx_PrintStringXY("TIME LEFT: ", GFX_LCD_WIDTH - 100, 10);
 	gfx_PrintUInt(timeleft, 3);
-
-	// Update all frame counters
-	framecnt2  = (framecnt2 + 1) % 2;
-	framecnt3  = (framecnt3 + 1) % 3;
-	framecnt10 = (framecnt10 + 1) % 10;
 }
 
 // MOVEMENT ROUTINES
@@ -164,7 +161,7 @@ movball(void)
 	}
 
 	if (touchpadd && !movball_lasttouch) {
-		double theta = M_PI_4 * 0.6 *
+		double theta = M_PI_2 * 0.6 *
 		               (ball.y - (touchpadd->y + (float)PADH / 2)) /
 		               ((float)PADH / 2);
 		ball.xmov = BALL_SPEED * cos(theta) * (touchpadd == &padd2 ? -1 : 1);
@@ -188,7 +185,7 @@ movball(void)
 		ball.ymov = -ball.ymov;
 		ball.y    = GFX_LCD_HEIGHT - BALL_RAD;
 	}
-	
+
 	return;
 
 resetball:;
@@ -203,20 +200,20 @@ resetball:;
 void
 movpaddle(void)
 {
-	if (!framecnt10) {
+	if (!framecnt20) {
 		return;
 	}
 
-	if (padd1.y - 3 >= HUD_H && kb_Data[2] & kb_Ln) {
-		padd1.y -= 3;
-	} else if (padd1.y + PADH + 3 <= GFX_LCD_HEIGHT && kb_Data[2] & kb_Sto) {
-		padd1.y += 3;
+	if (padd1.y - PADSPD >= HUD_H && kb_Data[2] & kb_Ln) {
+		padd1.y -= PADSPD;
+	} else if (padd1.y + PADH + PADSPD <= GFX_LCD_HEIGHT && kb_Data[2] & kb_Sto) {
+		padd1.y += PADSPD;
 	}
 
-	if (padd2.y - 3 >= HUD_H && kb_Data[6] & kb_Sub) {
-		padd2.y -= 3;
-	} else if (padd2.y + PADH + 3 <= GFX_LCD_HEIGHT && kb_Data[6] & kb_Add) {
-		padd2.y += 3;
+	if (padd2.y - PADSPD >= HUD_H && kb_Data[6] & kb_Sub) {
+		padd2.y -= PADSPD;
+	} else if (padd2.y + PADH + PADSPD <= GFX_LCD_HEIGHT && kb_Data[6] & kb_Add) {
+		padd2.y += PADSPD;
 	}
 }
 
@@ -303,6 +300,12 @@ main(void)
 			movball();
 			movpaddle();
 		}
+
+		// Update all frame counters
+		framecnt2  = (framecnt2 + 1) % 2;
+		framecnt3  = (framecnt3 + 1) % 3;
+		framecnt10 = (framecnt10 + 1) % 10;
+		framecnt20 = (framecnt20 + 1) % 20;
 
 		gfx_ZeroScreen();
 		draw();
