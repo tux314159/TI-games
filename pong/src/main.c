@@ -60,7 +60,7 @@ Ball ball = {
 	.y    = GAME_H / 2 + HUD_H,
 	.col  = RED,
 	.xmov = BALL_SPEED,
-	.ymov = 0 //
+	.ymov = 0
 };
 
 // Paddles
@@ -71,12 +71,12 @@ Ball ball = {
 
 Paddle padd1 = {
 	.x = 0,
-	.y = GAME_H / 2 - PADH / 2 + HUD_H, //
+	.y = GAME_H / 2 - PADH / 2 + HUD_H,
 };
 
 Paddle padd2 = {
 	.x = GAME_W - PADW,
-	.y = GAME_H / 2 - PADH / 2 + HUD_H, //
+	.y = GAME_H / 2 - PADH / 2 + HUD_H,
 };
 
 // FRAME COUNTERS
