@@ -60,8 +60,7 @@ Ball ball = {
 	.y    = GAME_H / 2 + HUD_H,
 	.col  = RED,
 	.xmov = BALL_SPEED,
-	.ymov = 0
-};
+	.ymov = 0};
 
 // Paddles
 #define PADW   4
@@ -134,7 +133,7 @@ draw(void)
 
 // MOVEMENT ROUTINES
 
-int movball_lasttouch = 0;
+int ball_lasttouch = 0;
 
 void
 movball(void)
@@ -160,18 +159,19 @@ movball(void)
 		touchpadd = &padd2;
 	}
 
-	if (touchpadd && !movball_lasttouch) {
+	if (ball_lasttouch) {
+		if (ball_lasttouch++ % 30 == 0) {
+			ball_lasttouch = 0;
+		}
+	}
+
+	if (touchpadd && !ball_lasttouch) {
 		double theta = M_PI_2 * 0.6 *
 		               (ball.y - (touchpadd->y + (float)PADH / 2)) /
 		               ((float)PADH / 2);
 		ball.xmov = BALL_SPEED * cos(theta) * (touchpadd == &padd2 ? -1 : 1);
 		ball.ymov = BALL_SPEED * sin(theta);
-		movball_lasttouch++;
-	}
-	if (movball_lasttouch) {
-		if (movball_lasttouch++ % 30 == 0) {
-			movball_lasttouch = 0;
-		}
+		ball_lasttouch++;
 	}
 
 	// If movespeed is odd we can stutter the ball
@@ -197,11 +197,17 @@ resetball:;
 	padd2.y   = GAME_H / 2 - PADH / 2 + HUD_H;
 }
 
+bool twoplayer;
+
 void
 movpaddle(void)
 {
 	if (!framecnt20) {
 		return;
+	}
+
+	if (!twoplayer) {
+		goto withAI;
 	}
 
 	if (padd1.y - PADSPD >= HUD_H && kb_Data[2] & kb_Ln) {
@@ -215,9 +221,61 @@ movpaddle(void)
 	} else if (padd2.y + PADH + PADSPD <= GFX_LCD_HEIGHT && kb_Data[6] & kb_Add) {
 		padd2.y += PADSPD;
 	}
-}
 
-bool twoplayer;
+	return;
+
+withAI:; // AI controls padd1
+	// Player controls padd2 as per normal
+	if (padd2.y - PADSPD >= HUD_H && kb_Data[6] & kb_Sub) {
+		padd2.y -= PADSPD;
+	} else if (padd2.y + PADH + PADSPD <= GFX_LCD_HEIGHT && kb_Data[6] & kb_Add) {
+		padd2.y += PADSPD;
+	}
+
+	if (ball_lasttouch == 1 &&
+	    ball.xmov < 0) { // Just contacted player's paddle in this frame
+		double m = (double)ball.ymov / (double)ball.xmov;
+		double c = (double)ball.y - m * (double)ball.x;
+
+		// We want to find the height where the ball will
+		// meet the line y = PADW
+		// Computing the final height of the ball is slightly tricky;
+		// first we mod by height, then we check whether the
+		// number of bounces is even or odd and proceed accordingly.
+		// To compute the number of bounces, notice a bounce happens
+		// when the ball hits the top or bottom of the box; i.e.
+		// h_ball === 0 (mod h_screen), so we simply solve that
+		
+		double targh; // absolute height
+		if (m) {
+			double sol     = 5000;
+			int    nbounce = 0;
+			int    ytest   = 0;
+			while (sol > PADW - 1) {
+				sol = ((double)ytest - c) / fabs(m);
+				nbounce++;
+				ytest += GAME_H;
+			}
+			nbounce--;
+
+			targh = fmod((m * (double)PADW + c), GAME_H);
+			if (nbounce % 2) {
+				targh = GFX_LCD_HEIGHT - targh;
+			}
+		} else {
+			targh = ball.y;
+		}
+
+		targh -= (float)PADH / 2;
+		if (targh + PADH > GFX_LCD_HEIGHT) {
+			targh = GFX_LCD_HEIGHT - PADH;
+		} else if (targh < 0) {
+			targh = 0;
+		}
+
+		padd2.y = targh;
+	}
+}
 
 void
 playerselect(void)
