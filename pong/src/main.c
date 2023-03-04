@@ -19,6 +19,25 @@
 #define GAME_W GFX_LCD_WIDTH
 #define GAME_H (GFX_LCD_HEIGHT - HUD_H)
 
+// UTILITY GFX FUNCTIONS
+unsigned int
+gfx_GetFontHeight(void)
+{
+	unsigned int h = gfx_SetFontHeight(1);
+	gfx_SetFontHeight(h);
+	return h;
+}
+
+void
+gfx_PrintStringCentered(const char *str)
+{
+	gfx_PrintStringXY(
+		str,
+		(GFX_LCD_WIDTH - gfx_GetStringWidth(str)) / 2,
+		(GFX_LCD_HEIGHT - gfx_GetFontHeight()) / 2
+	);
+}
+
 // GAME OBJECTS
 
 typedef struct {
@@ -34,7 +53,7 @@ typedef struct {
 // Ball
 #define BALLTOP   (ball.y - BALL_RAD)
 #define BALLBOT   (ball.y + BALL_RAD)
-#define BALL_XSPD 4
+#define BALL_XSPD 8
 #define BALL_RAD  7
 Ball ball = {
 	.x    = GAME_W / 2,
@@ -68,21 +87,24 @@ char framecnt10 = 0;
 // GAME VARIABLES
 
 int p1score, p2score;
-int timeleft = 1 << 7;
+unsigned int timeleft = 1 << 7;
 
 void
 draw(void)
 {
-	if (timeleft < 1) {
+	if (!timeleft) {
 		// Time is up
-		gfx_SetTextScale(2, 2);
+		const char *str;
 		if (p1score > p2score) {
-			gfx_PrintStringXY("PLAYER 1 WINS!", 50, 100);
+			str = "PLAYER 1 WINS!";
 		} else if (p2score > p1score) {
-			gfx_PrintStringXY("PLAYER 2 WINS!", 50, 100);
+			str = "PLAYER 2 WINS!";
 		} else {
-			gfx_PrintStringXY("DRAW", 50, 50);
+			str = "DRAW...";
 		}
+
+		gfx_SetTextScale(2, 2);
+		gfx_PrintStringCentered(str);
 		return;
 	}
 
@@ -105,12 +127,7 @@ draw(void)
 	gfx_PrintString(" - ");
 	gfx_PrintInt(p2score, 3);
 	gfx_PrintStringXY("TIME LEFT: ", GFX_LCD_WIDTH - 100, 10);
-	gfx_PrintInt(timeleft, 3);
-
-	if (rtc_ChkInterrupt(RTC_SEC_INT)) {
-		rtc_AckInterrupt(RTC_SEC_INT);
-		timeleft--;
-	}
+	gfx_PrintUInt(timeleft, 3);
 
 	// Update all frame counters
 	framecnt2  = (framecnt2 + 1) % 2;
@@ -129,7 +146,6 @@ movball(void)
 		return;
 	}
 
-	ball.x += ball.xmov;
 	// Ball going out
 	if (ball.x + BALL_RAD <= 0) {
 		p2score++;
@@ -161,6 +177,7 @@ movball(void)
 	}
 
 	if (!framecnt2) {
+		ball.x += ball.xmov;
 		ball.y += ball.ymov;
 		// Top/bottom collision detection
 		if (BALLTOP <= HUD_H) {
@@ -203,6 +220,51 @@ movpaddle(void)
 	}
 }
 
+bool twoplayer;
+
+void
+playerselect(void)
+{
+	gfx_ZeroScreen();
+
+	const int dialogw = 230, dialogh = 80;
+	gfx_SetColor(WHITE);
+	// Draw - swap - draw - swap so we don't have to redraw rect
+	gfx_Rectangle(
+		(GFX_LCD_WIDTH - dialogw) / 2,
+		(GFX_LCD_HEIGHT - dialogh) / 2,
+		dialogw,
+		dialogh
+	);
+	gfx_SwapDraw();
+	gfx_Rectangle(
+		(GFX_LCD_WIDTH - dialogw) / 2,
+		(GFX_LCD_HEIGHT - dialogh) / 2,
+		dialogw,
+		dialogh
+	);
+	gfx_SwapDraw();
+
+	for (int i = 0; i < 253; i = (i + 1) % 252) {
+		kb_Scan();
+
+		gfx_SetTextFGColor(i + 3);  // teehee
+		gfx_PrintStringCentered("[1] OR [2] PLAYER SELECT");
+		gfx_SwapDraw();
+
+		if (kb_Data[3] & kb_1) {
+			twoplayer = false;
+			break;
+		} else if (kb_Data[4] & kb_2) {
+			twoplayer = true;
+			break;
+		}
+
+		delay(15);
+	}
+	gfx_SetTextFGColor(WHITE);
+}
+
 int
 main(void)
 {
@@ -219,7 +281,9 @@ main(void)
 	gfx_SetTextTransparentColor(BLACK);
 	gfx_SetTextFGColor(WHITE);
 	gfx_SetTextBGColor(BLACK);
-	gfx_SetTextConfig(gfx_text_clip);
+	
+	playerselect();
+
 	ball.xmov *= rand() % 2 ? 1 : -1;
 
 	// Start on the second
@@ -230,8 +294,15 @@ main(void)
 	while (!(kb_Data[1] & kb_Mode)) {
 		kb_Scan();
 
-		movball();
-		movpaddle();
+		if (rtc_ChkInterrupt(RTC_SEC_INT) && timeleft) {
+			rtc_AckInterrupt(RTC_SEC_INT);
+			timeleft--;
+		}
+
+		if (timeleft) {
+			movball();
+			movpaddle();
+		}
 
 		gfx_ZeroScreen();
 		draw();
