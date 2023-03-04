@@ -19,7 +19,14 @@
 #define GAME_W GFX_LCD_WIDTH
 #define GAME_H (GFX_LCD_HEIGHT - HUD_H)
 
-// UTILITY GFX FUNCTIONS
+// UTILITY FUNCTIONS
+inline double modulo(double a, double b)
+{
+	if(b < 0) return modulo(-a, -b);
+	const int result = fmod(a, b);
+	return result >= 0 ? result : result + b;
+}
+
 unsigned int
 gfx_GetFontHeight(void)
 {
@@ -54,7 +61,7 @@ typedef struct {
 #define BALLTOP    (ball.y - BALL_RAD)
 #define BALLBOT    (ball.y + BALL_RAD)
 #define BALL_RAD   5
-#define BALL_SPEED 14 // per unit time, we will move 10 units in any direction
+#define BALL_SPEED 16 // per unit time, we will move 10 units in any direction
 Ball ball = {
 	.x    = GAME_W / 2,
 	.y    = GAME_H / 2 + HUD_H,
@@ -117,12 +124,12 @@ draw(void)
 
 	// Paddles
 	gfx_SetColor(PADCOL);
-	gfx_FillRectangle_NoClip(padd1.x, padd1.y, PADW, PADH);
-	gfx_FillRectangle_NoClip(padd2.x, padd2.y, PADW, PADH);
+	gfx_FillRectangle(padd1.x, padd1.y, PADW, PADH);
+	gfx_FillRectangle(padd2.x, padd2.y, PADW, PADH);
 
 	// HUD
 	gfx_SetColor(WHITE);
-	gfx_Line_NoClip(0, HUD_H, GFX_LCD_WIDTH, HUD_H);
+	gfx_Line(0, HUD_H, GFX_LCD_WIDTH, HUD_H);
 	gfx_PrintStringXY("SCORE: ", 10, 10);
 	gfx_PrintInt(p1score, 2);
 	gfx_PrintString(" - ");
@@ -202,12 +209,12 @@ bool twoplayer;
 void
 movpaddle(void)
 {
-	if (!framecnt20) {
-		return;
-	}
-
 	if (!twoplayer) {
 		goto withAI;
+	}
+
+	if (!framecnt20) {
+		return;
 	}
 
 	if (padd1.y - PADSPD >= HUD_H && kb_Data[2] & kb_Ln) {
@@ -232,48 +239,17 @@ withAI:; // AI controls padd1
 		padd2.y += PADSPD;
 	}
 
-	if (ball_lasttouch == 1 &&
-	    ball.xmov < 0) { // Just contacted player's paddle in this frame
-		double m = (double)ball.ymov / (double)ball.xmov;
-		double c = (double)ball.y - m * (double)ball.x;
-
-		// We want to find the height where the ball will
-		// meet the line y = PADW
-		// Computing the final height of the ball is slightly tricky;
-		// first we mod by height, then we check whether the
-		// number of bounces is even or odd and proceed accordingly.
-		// To compute the number of bounces, notice a bounce happens
-		// when the ball hits the top or bottom of the box; i.e.
-		// h_ball === 0 (mod h_screen), so we simply solve that
-		
-		double targh; // absolute height
-		if (m) {
-			double sol     = 5000;
-			int    nbounce = 0;
-			int    ytest   = 0;
-			while (sol > PADW - 1) {
-				sol = ((double)ytest - c) / fabs(m);
-				nbounce++;
-				ytest += GAME_H;
-			}
-			nbounce--;
-
-			targh = fmod((m * (double)PADW + c), GAME_H);
-			if (nbounce % 2) {
-				targh = GFX_LCD_HEIGHT - targh;
-			}
-		} else {
-			targh = ball.y;
-		}
-
-		targh -= (float)PADH / 2;
-		if (targh + PADH > GFX_LCD_HEIGHT) {
-			targh = GFX_LCD_HEIGHT - PADH;
-		} else if (targh < 0) {
-			targh = 0;
-		}
-
-		padd2.y = targh;
+	int delta = padd1.y + PADH / 2 - ball.y;
+	if (delta < 0) {
+		padd1.y += 16;
+	} else {
+		padd1.y -= 16;
+	}
+	padd1.y += framecnt10 * 5 - 25;
+	if (padd1.y < HUD_H) {
+		padd1.y = HUD_H;
+	} else if (padd1.y + PADH > GFX_LCD_HEIGHT) {
+		padd1.y = GFX_LCD_HEIGHT - PADH;
 	}
 }
 
