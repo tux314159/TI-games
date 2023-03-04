@@ -54,7 +54,7 @@ typedef struct {
 #define BALLTOP    (ball.y - BALL_RAD)
 #define BALLBOT    (ball.y + BALL_RAD)
 #define BALL_RAD   7
-#define BALL_SPEED 14 // per unit time, we will move 10 units in any direction
+#define BALL_SPEED 12 // per unit time, we will move 10 units in any direction
 Ball ball = {
 	.x    = GAME_W / 2,
 	.y    = GAME_H / 2 + HUD_H,
