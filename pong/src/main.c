@@ -51,15 +51,15 @@ typedef struct {
 } Paddle;
 
 // Ball
-#define BALLTOP   (ball.y - BALL_RAD)
-#define BALLBOT   (ball.y + BALL_RAD)
-#define BALL_XSPD 8
-#define BALL_RAD  7
+#define BALLTOP    (ball.y - BALL_RAD)
+#define BALLBOT    (ball.y + BALL_RAD)
+#define BALL_RAD   7
+#define BALL_SPEED 14 // per unit time, we will move 10 units in any direction
 Ball ball = {
 	.x    = GAME_W / 2,
 	.y    = GAME_H / 2 + HUD_H,
 	.col  = RED,
-	.xmov = BALL_XSPD,
+	.xmov = BALL_SPEED,
 	.ymov = 0 //
 };
 
@@ -86,7 +86,7 @@ char framecnt10 = 0;
 
 // GAME VARIABLES
 
-int p1score, p2score;
+int          p1score, p2score;
 unsigned int timeleft = 1 << 7;
 
 void
@@ -164,10 +164,11 @@ movball(void)
 	}
 
 	if (touchpadd && !movball_lasttouch) {
-		ball.xmov = -ball.xmov;
-		float padportion =
-			(ball.y - (touchpadd->y + (float)PADH / 2)) / ((float)PADH / 2);
-		ball.ymov = 8 * padportion;
+		double theta = M_PI_2 * 0.6 *
+		               (ball.y - (touchpadd->y + (float)PADH / 2)) /
+		               ((float)PADH / 2);
+		ball.xmov = BALL_SPEED * cos(theta) * (touchpadd == &padd2 ? -1 : 1);
+		ball.ymov = BALL_SPEED * sin(theta);
 		movball_lasttouch++;
 	}
 	if (movball_lasttouch) {
@@ -194,7 +195,7 @@ movball(void)
 resetball:;
 	ball.x    = GAME_W / 2;
 	ball.y    = GAME_H / 2 + HUD_H;
-	ball.xmov = BALL_XSPD * (rand() % 2 ? 1 : -1);
+	ball.xmov = BALL_SPEED * (rand() % 2 ? 1 : -1);
 	ball.ymov = 0;
 	padd1.y   = GAME_H / 2 - PADH / 2 + HUD_H;
 	padd2.y   = GAME_H / 2 - PADH / 2 + HUD_H;
@@ -248,7 +249,7 @@ playerselect(void)
 	for (int i = 0; i < 253; i = (i + 1) % 252) {
 		kb_Scan();
 
-		gfx_SetTextFGColor(i + 3);  // teehee
+		gfx_SetTextFGColor(i + 3); // teehee
 		gfx_PrintStringCentered("[1] OR [2] PLAYER SELECT");
 		gfx_SwapDraw();
 
@@ -281,7 +282,7 @@ main(void)
 	gfx_SetTextTransparentColor(BLACK);
 	gfx_SetTextFGColor(WHITE);
 	gfx_SetTextBGColor(BLACK);
-	
+
 	playerselect();
 
 	ball.xmov *= rand() % 2 ? 1 : -1;
