@@ -175,8 +175,8 @@ movball(void)
 	}
 
 	// If movespeed is odd we can stutter the ball
-	ball.x += ball.xmov / 2 + (framecnt2 && ball.xmov % 2);
-	ball.y += ball.ymov / 2 + (framecnt2 && ball.ymov % 2);
+	ball.x += ball.xmov / 2 + (framecnt2 & ball.xmov % 2);
+	ball.y += ball.ymov / 2 + (framecnt2 & ball.ymov % 2);
 	// Top/bottom collision detection
 	if (BALLTOP <= HUD_H) {
 		ball.ymov = -ball.ymov;
