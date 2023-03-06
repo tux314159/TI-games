@@ -96,6 +96,7 @@ char framecnt20 = 0;
 
 int          p1score, p2score;
 unsigned int timeleft = 1 << 7;
+bool         imlazy   = false;
 
 void
 draw(void)
@@ -202,6 +203,7 @@ resetball:;
 	ball.ymov = 0;
 	padd1.y   = GAME_H / 2 - PADH / 2 + HUD_H;
 	padd2.y   = GAME_H / 2 - PADH / 2 + HUD_H;
+	imlazy = true;
 }
 
 bool twoplayer;
@@ -345,6 +347,16 @@ main(void)
 		draw();
 
 		gfx_SwapDraw();
+
+		if (imlazy) { // BUG: this should always be true because I'm always lazy
+			gfx_PrintStringCentered("PRESS ANY KEY TO CONTINUE");
+			gfx_SwapDraw();
+			while (!kb_AnyKey()) {
+				kb_Scan();
+			}
+			imlazy = false;
+		}
+
 		kb_Scan();
 	}
 
